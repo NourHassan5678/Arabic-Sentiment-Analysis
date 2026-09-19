@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: arabic-sentiment-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=models/baseline_model.joblib
+    restart: unless-stopped

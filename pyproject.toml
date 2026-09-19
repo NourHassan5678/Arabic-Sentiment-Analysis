@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arabic_sentiment"
+version = "0.1.0"
+description = "Arabic e-commerce sentiment classification (Positive/Negative/Neutral)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=2.0.0",
+    "scikit-learn>=1.2.0",
+    "joblib>=1.2.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "pydantic>=2.0.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

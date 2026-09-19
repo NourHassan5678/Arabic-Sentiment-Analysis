@@ -1,2 +1,11 @@
-# Arabic-Sentiment-Analysis
-Final project for the **MLOps Practitioner course**, using an Arabic customer reviews dataset from Kaggle. This NLP project classifies Arabic customer reviews as Positive, Negative, or Neutral, with a focus on efficient model deployment.
+# Arabic Sentiment Analysis
+
+A lightweight MLOps API for classifying Arabic e-commerce reviews into Positive, Negative, or Neutral sentiments.
+
+## Quickstart
+
+Run these 3 commands to build, serve, and test the API locally:
+
+1. **Build the container:**
+   ```bash
+   docker compose build
