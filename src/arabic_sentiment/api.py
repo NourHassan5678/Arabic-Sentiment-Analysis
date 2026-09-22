@@ -1,49 +1,55 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
 import os
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 
-from arabic_sentiment.baseline_model import SentimentModel
+from arabic_sentiment.baseline_model import TransformerSentimentModel
 
-# Global model instance
-model = SentimentModel()
+# Instantiate model wrapper globally
+model = TransformerSentimentModel()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load model on startup
-    model_path = os.getenv("MODEL_PATH", "models/baseline_model.joblib")
+    """Handles startup (model loading) and shutdown events cleanly."""
+    model_path = os.getenv("MODEL_PATH", None)
     try:
-        model.load(model_path)
-    except FileNotFoundError:
-        print(f"Warning: Model not found at {model_path}. Please train it first.")
+        model.load(local_path=model_path)
+    except Exception as e:
+        print(f"Warning: Could not load production model on startup: {e}")
+        print("Ensure 'python src/arabic_sentiment/train_transformer.py' has run or MLflow is accessible.")
     yield
-    # Cleanup on shutdown (if any)
+
 
 app = FastAPI(title="Arabic Sentiment API", lifespan=lifespan)
 
+
 class PredictionRequest(BaseModel):
-    # Field min_length=1 ensures empty strings ("") automatically return a 422 error
+    # min_length=1 ensures empty strings ("") automatically trigger a 422 Unprocessable Entity error
     text: str = Field(..., min_length=1, description="Arabic e-commerce review text")
+
 
 class PredictionResponse(BaseModel):
     label: str
     confidence: float
     model_version: str
 
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict_sentiment(request: PredictionRequest):
-    if not model.pipeline:
-        raise HTTPException(status_code=503, detail="Model is not loaded.")
-        
+    if not model.model or not model.tokenizer:
+        raise HTTPException(status_code=503, detail="Model server uninitialized or model not loaded.")
+
     try:
-        result = model.predict(request.text)
-        return result
+        return model.predict(request.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

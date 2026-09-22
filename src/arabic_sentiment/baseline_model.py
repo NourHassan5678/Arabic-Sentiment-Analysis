@@ -1,10 +1,13 @@
 import joblib
 import pandas as pd
+import torch
+import mlflow
 from typing import Dict, Any, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, accuracy_score, f1_score
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 class SentimentModel:
     def __init__(self, version: str = "v0.1.0-baseline"):
@@ -77,11 +80,53 @@ class SentimentModel:
         self.version = data["version"]
         print(f"Model {self.version} loaded from {filepath}")
 
+
+class TransformerSentimentModel:
+    def __init__(self, model_alias_uri: str = "models:/ArabicSentiment@Production"):
+        self.model_alias_uri = model_alias_uri
+        self.tokenizer = None
+        self.model = None
+        self.version = "v0.2.0-arabert"
+
+    def load(self, local_path: str = None) -> None:
+        """Loads model and tokenizer artifacts from MLflow Registry or local directory."""
+        if local_path:
+            fetch_path = local_path
+        else:
+            fetch_path = mlflow.artifacts.download_artifacts(artifact_uri=f"{self.model_alias_uri}/artifacts")
+        
+        self.tokenizer = AutoTokenizer.from_pretrained(fetch_path)
+        self.model = AutoModelForSequenceClassification.from_pretrained(fetch_path)
+        self.model.eval()
+        print(f"Loaded Transformer model successfully from {fetch_path}")
+
+    def predict(self, text: str) -> Dict[str, Any]:
+        if not self.model or not self.tokenizer:
+            raise ValueError("Transformer model is not loaded.")
+
+        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
+        
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            probs = torch.nn.functional.softmax(outputs.logits, dim=-1)[0]
+
+        pred_idx = torch.argmax(probs).item()
+        confidence = float(probs[pred_idx].item())
+        label = self.model.config.id2label[pred_idx]
+
+        return {
+            "label": str(label),
+            "confidence": round(confidence, 4),
+            "model_version": self.version
+        }
+
+
 if __name__ == "__main__":
     train_data = pd.read_csv("data/processed/train.csv")
     val_data = pd.read_csv("data/processed/val.csv")
     test_data = pd.read_csv("data/processed/test.csv")
     
+    # Keeping the original script functionality intact for regression testing
     model = SentimentModel()
     model.train(train_data)
     

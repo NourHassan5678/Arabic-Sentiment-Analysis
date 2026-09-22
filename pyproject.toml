@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arabic_sentiment"
-version = "0.1.0"
-description = "Arabic e-commerce sentiment classification (Positive/Negative/Neutral)"
+version = "0.2.0"
+description = "Arabic e-commerce sentiment classification using fine-tuned BERT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -14,7 +14,12 @@ dependencies = [
     "joblib>=1.2.0",
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
-    "pydantic>=2.0.0"
+    "pydantic>=2.0.0",
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "datasets>=2.12.0",
+    "accelerate>=0.20.0",
+    "mlflow>=2.5.0"
 ]
 
 [tool.setuptools.packages.find]

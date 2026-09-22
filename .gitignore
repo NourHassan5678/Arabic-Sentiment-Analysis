@@ -216,3 +216,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# MLflow Tracking & Artifacts
+mlflow.db
+mlruns/
+mlartifacts/
+
+# Large Model Files & Weights (safety fallback)
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.h5
+
+# OS generated files
+.DS_Store
+Thumbs.db

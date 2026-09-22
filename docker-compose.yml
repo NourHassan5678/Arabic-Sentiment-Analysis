@@ -1,7 +1,7 @@
 services:
   api:
     build: .
-    container_name: arabic-sentiment-api
+    container_name: sentiment_app
     ports:
       - "8000:8000"
     environment:
