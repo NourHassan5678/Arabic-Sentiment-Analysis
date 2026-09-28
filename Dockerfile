@@ -7,11 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CPU version of PyTorch to keep container size lightweight
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
+COPY models/production_model ./models/production_model
 
 RUN pip install --no-cache-dir -e .
 

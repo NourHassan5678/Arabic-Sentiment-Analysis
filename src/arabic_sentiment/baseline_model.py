@@ -89,18 +89,14 @@ class TransformerSentimentModel:
         self.version = "v0.2.0-arabert"
 
     def load(self, local_path: str = None) -> None:
-        """Loads model and tokenizer artifacts from MLflow Registry or local directory."""
-        if local_path:
-            self.tokenizer = AutoTokenizer.from_pretrained(local_path)
-            self.model = AutoModelForSequenceClassification.from_pretrained(local_path)
-        else:
-            pipeline = mlflow.transformers.load_model(self.model_alias_uri)
-            self.model = pipeline.model
-            self.tokenizer = pipeline.tokenizer
-
+        """Loads model and tokenizer from a local directory or the MLflow Registry."""
+        model_uri = local_path or self.model_alias_uri
+        pipeline = mlflow.transformers.load_model(model_uri)
+        self.model = pipeline.model
+        self.tokenizer = pipeline.tokenizer
         self.model.eval()
-        print(f"Loaded Transformer model successfully (source: {local_path or self.model_alias_uri})")
-        
+        print(f"Loaded Transformer model successfully (source: {model_uri})")
+            
     def predict(self, text: str) -> Dict[str, Any]:
         if not self.model or not self.tokenizer:
             raise ValueError("Transformer model is not loaded.")
