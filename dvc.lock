@@ -1,0 +1,92 @@
+schema: '2.0'
+stages:
+  prepare_data:
+    cmd: python src/arabic_sentiment/data_prep.py
+    deps:
+    - path: data/raw/Final_Data.csv
+      hash: md5
+      md5: 77573994194612e9e216e3466b2eeb42
+      size: 4443191
+    - path: src/arabic_sentiment/data_prep.py
+      hash: md5
+      md5: 0652f6ad6a6e6f4721a35a22e0f1ef15
+      size: 1686
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 3adf2c6d235a8c18d7dca69314e8a1be
+      size: 659923
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 519224470039410126268083fc065acf
+      size: 3116064
+    - path: data/processed/val.csv
+      hash: md5
+      md5: d689b79490c69f532da3ecb881de8c0f
+      size: 664545
+  train_baseline:
+    cmd: python src/arabic_sentiment/baseline_model.py
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 519224470039410126268083fc065acf
+      size: 3116064
+    - path: data/processed/val.csv
+      hash: md5
+      md5: d689b79490c69f532da3ecb881de8c0f
+      size: 664545
+    - path: src/arabic_sentiment/baseline_model.py
+      hash: md5
+      md5: b486e6f605eb4b59443c6abbc3622ea9
+      size: 5533
+    outs:
+    - path: models/baseline_model.joblib
+      hash: md5
+      md5: 0d5e564123a55b64ad64985b127a2759
+      size: 669089
+  train_arabert:
+    cmd: python src/arabic_sentiment/train_transformer.py
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 519224470039410126268083fc065acf
+      size: 3116064
+    - path: data/processed/val.csv
+      hash: md5
+      md5: d689b79490c69f532da3ecb881de8c0f
+      size: 664545
+    - path: src/arabic_sentiment/train_transformer.py
+      hash: md5
+      md5: ba1a8a44ccba62bef55015cc7beb9983
+      size: 13674
+    outs:
+    - path: models/production_model/
+      hash: md5
+      md5: f001278e7063bd3d4f215f77b8558888.dir
+      size: 542485023
+      nfiles: 4
+  evaluate:
+    cmd: python src/arabic_sentiment/evaluate.py
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 3adf2c6d235a8c18d7dca69314e8a1be
+      size: 659923
+    - path: models/baseline_model.joblib
+      hash: md5
+      md5: 0d5e564123a55b64ad64985b127a2759
+      size: 669089
+    - path: models/production_model/
+      hash: md5
+      md5: f001278e7063bd3d4f215f77b8558888.dir
+      size: 542485023
+      nfiles: 4
+    - path: src/arabic_sentiment/evaluate.py
+      hash: md5
+      md5: 5e60a9544f80a4dc99012f3d801ca415
+      size: 7283
+    outs:
+    - path: results/metrics.json
+      hash: md5
+      md5: ba34ff6e5e48105e1e7113fec4c3f2a9
+      size: 514

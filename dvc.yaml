@@ -1,0 +1,39 @@
+stages:
+  prepare_data:
+    cmd: python src/arabic_sentiment/data_prep.py
+    deps:
+      - src/arabic_sentiment/data_prep.py
+      - data/raw/Final_Data.csv
+    outs:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+
+  train_baseline:
+    cmd: python src/arabic_sentiment/baseline_model.py
+    deps:
+      - src/arabic_sentiment/baseline_model.py
+      - data/processed/train.csv
+      - data/processed/val.csv
+    outs:
+      - models/baseline_model.joblib
+
+  train_arabert:
+    cmd: python src/arabic_sentiment/train_transformer.py
+    deps:
+      - src/arabic_sentiment/train_transformer.py
+      - data/processed/train.csv
+      - data/processed/val.csv
+    outs:
+      - models/production_model/
+
+  evaluate:
+    cmd: python src/arabic_sentiment/evaluate.py
+    deps:
+      - src/arabic_sentiment/evaluate.py
+      - data/processed/test.csv
+      - models/baseline_model.joblib
+      - models/production_model/
+    metrics:
+      - results/metrics.json:
+          cache: false
