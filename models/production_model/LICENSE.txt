@@ -1,3 +1,0 @@
-A license file could not be found for the 'aubmindlab/bert-base-arabertv2' repository. 
-To ensure that you are in compliance with the license requirements for this model, please visit the model repository here: https://huggingface.co/aubmindlab/bert-base-arabertv2
-The declared license type is: 'None'
