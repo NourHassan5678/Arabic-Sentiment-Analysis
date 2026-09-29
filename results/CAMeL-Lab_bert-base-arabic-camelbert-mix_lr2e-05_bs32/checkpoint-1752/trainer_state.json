@@ -142,9 +142,9 @@
       "eval_pos_f1": 0.8742586002372479,
       "eval_pos_precision": 0.9332067109844887,
       "eval_pos_recall": 0.8223152022315202,
-      "eval_runtime": 8.8522,
-      "eval_samples_per_second": 678.139,
-      "eval_steps_per_second": 42.475,
+      "eval_runtime": 9.1197,
+      "eval_samples_per_second": 658.248,
+      "eval_steps_per_second": 41.23,
       "step": 876
     },
     {
@@ -287,9 +287,9 @@
       "eval_pos_f1": 0.8779197884530631,
       "eval_pos_precision": 0.9273743016759777,
       "eval_pos_recall": 0.8334728033472804,
-      "eval_runtime": 9.447,
-      "eval_samples_per_second": 635.439,
-      "eval_steps_per_second": 39.801,
+      "eval_runtime": 9.1045,
+      "eval_samples_per_second": 659.341,
+      "eval_steps_per_second": 41.298,
       "step": 1752
     }
   ],

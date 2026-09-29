@@ -142,9 +142,9 @@
       "eval_pos_f1": 0.8474110279517336,
       "eval_pos_precision": 0.9365293720459149,
       "eval_pos_recall": 0.7737796373779637,
-      "eval_runtime": 9.198,
-      "eval_samples_per_second": 652.64,
-      "eval_steps_per_second": 40.878,
+      "eval_runtime": 9.8475,
+      "eval_samples_per_second": 609.597,
+      "eval_steps_per_second": 38.182,
       "step": 876
     },
     {
@@ -287,9 +287,9 @@
       "eval_pos_f1": 0.86463923673226,
       "eval_pos_precision": 0.9285943003522255,
       "eval_pos_recall": 0.8089260808926081,
-      "eval_runtime": 9.796,
-      "eval_samples_per_second": 612.801,
-      "eval_steps_per_second": 38.383,
+      "eval_runtime": 10.2281,
+      "eval_samples_per_second": 586.915,
+      "eval_steps_per_second": 36.762,
       "step": 1752
     },
     {
@@ -425,9 +425,9 @@
       "eval_pos_f1": 0.8852081232896443,
       "eval_pos_precision": 0.9151280524121501,
       "eval_pos_recall": 0.8571827057182706,
-      "eval_runtime": 9.5832,
-      "eval_samples_per_second": 626.41,
-      "eval_steps_per_second": 39.235,
+      "eval_runtime": 10.0352,
+      "eval_samples_per_second": 598.194,
+      "eval_steps_per_second": 37.468,
       "step": 2628
     }
   ],
