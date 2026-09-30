@@ -37,12 +37,12 @@ stages:
       size: 664545
     - path: src/arabic_sentiment/baseline_model.py
       hash: md5
-      md5: b486e6f605eb4b59443c6abbc3622ea9
-      size: 5533
+      md5: 160e2dc7b0f2917cd69c3c4542e82cef
+      size: 5589
     outs:
     - path: models/baseline_model.joblib
       hash: md5
-      md5: 0d5e564123a55b64ad64985b127a2759
+      md5: 87240761cd9c34c68fbb7d571c657e77
       size: 669089
   train_arabert:
     cmd: python src/arabic_sentiment/train_transformer.py
@@ -74,7 +74,7 @@ stages:
       size: 659923
     - path: models/baseline_model.joblib
       hash: md5
-      md5: 0d5e564123a55b64ad64985b127a2759
+      md5: 87240761cd9c34c68fbb7d571c657e77
       size: 669089
     - path: models/production_model/
       hash: md5

@@ -1,18 +1,19 @@
+from typing import Any
+
 import joblib
+import mlflow
 import pandas as pd
 import torch
-import mlflow
-from typing import Dict, Any, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report, accuracy_score, f1_score
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
 
 class SentimentModel:
     def __init__(self, version: str = "v0.1.0-baseline"):
         self.version = version
-        self.pipeline: Optional[Pipeline] = None
+        self.pipeline: Pipeline | None = None
         
     def train(self, df_train: pd.DataFrame, text_col: str = "review_description", label_col: str = "rating") -> None:
         X_train = df_train[text_col].astype(str)
@@ -27,7 +28,7 @@ class SentimentModel:
         self.pipeline.fit(X_train, y_train)
         print("Training complete.")
 
-    def evaluate(self, df_eval: pd.DataFrame, dataset_name: str = "Validation", text_col: str = "review_description", label_col: str = "rating") -> Dict[str, Any]:
+    def evaluate(self, df_eval: pd.DataFrame, dataset_name: str = "Validation", text_col: str = "review_description", label_col: str = "rating") -> dict[str, Any]:
         if not self.pipeline:
             raise ValueError("Model must be trained or loaded before evaluation.")
             
@@ -54,7 +55,7 @@ class SentimentModel:
             "report": classification_report(y_eval, y_pred, output_dict=True)
         }
 
-    def predict(self, text: str) -> Dict[str, Any]:
+    def predict(self, text: str) -> dict[str, Any]:
         if not self.pipeline:
             raise ValueError("Model must be trained or loaded before prediction.")
             
@@ -88,7 +89,7 @@ class TransformerSentimentModel:
         self.model = None
         self.version = "v0.2.0-arabert"
 
-    def load(self, local_path: str = None) -> None:
+    def load(self, local_path: str | None = None) -> None:
         """Loads model and tokenizer from a local directory or the MLflow Registry."""
         model_uri = local_path or self.model_alias_uri
         pipeline = mlflow.transformers.load_model(model_uri)
@@ -97,11 +98,13 @@ class TransformerSentimentModel:
         self.model.eval()
         print(f"Loaded Transformer model successfully (source: {model_uri})")
             
-    def predict(self, text: str) -> Dict[str, Any]:
+    def predict(self, text: str) -> dict[str, Any]:
         if not self.model or not self.tokenizer:
             raise ValueError("Transformer model is not loaded.")
 
         inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
+        # MLflow may load the model onto the GPU; the tokenizer's tensors start on the CPU.
+        inputs = inputs.to(self.model.device)
         
         with torch.no_grad():
             outputs = self.model(**inputs)
