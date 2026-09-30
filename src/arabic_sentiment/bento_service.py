@@ -1,8 +1,29 @@
+"""
+BentoML service for AraBERT sentiment analysis with Prometheus metrics exposure.
+"""
+
 import bentoml
+from fastapi import FastAPI, Response
 import torch
 import torch.nn.functional as F
 
+# Import the Prometheus metrics exporter from monitor_drift
+from src.arabic_sentiment.monitor_drift import get_prometheus_metrics
 
+# 1. Create a native FastAPI app for HTTP GET requests
+metrics_app = FastAPI()
+
+
+@metrics_app.get("")
+@metrics_app.get("/")
+def drift_metrics_endpoint():
+    """Exposes Evidently PSI drift scores in Prometheus format."""
+    data, content_type = get_prometheus_metrics()
+    return Response(content=data, media_type=content_type)
+
+
+# 2. Mount the FastAPI app specifically at path="/drift_metrics"
+@bentoml.mount_asgi_app(metrics_app, path="/drift_metrics")
 @bentoml.service(name="arabert_final_benchmark_service")
 class AraBERTService:
     def __init__(self):
