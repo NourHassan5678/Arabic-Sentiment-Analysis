@@ -233,3 +233,5 @@ mlartifacts/
 # OS generated files
 .DS_Store
 Thumbs.db
+reports/drift_latest.json
+data/scored_batch_latest.csv
