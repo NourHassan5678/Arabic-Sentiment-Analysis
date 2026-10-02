@@ -1,140 +1,255 @@
-"""
-Drift Monitoring Module using Evidently AI and Prometheus Client.
-Computes Population Stability Index (PSI) for text_length and confidence_score using DataDriftPreset.
+"""Drift monitoring: PSI for text_length and confidence_score (Evidently 0.7+ + Prometheus).
+
+Flow:
+  batch_score.py  -> run_drift_monitoring(df) -> Evidently PSI -> reports/drift_latest.json
+  BentoML service -> /metrics (via __metrics__) and /drift/metrics -> DriftCollector reads that JSON
+
+The JSON hand-off matters: batch scoring runs in its own process, and the serving process
+must not depend on in-memory state from it. The exporter is a custom Prometheus collector
+that reads the JSON on every scrape (no Gauge objects, so BentoML's multiprocess mode
+cannot duplicate the series or add a pid label).
 """
 
-import os
-from pathlib import Path
+import json
 import warnings
+from datetime import datetime, timezone
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST
-from evidently import Report
-from evidently.presets import DataDriftPreset
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
+from prometheus_client.core import GaugeMetricFamily
 
-# Suppress division-by-zero warnings from scipy stats when handling synthetic variance
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="scipy.stats")
 
-# ------------------------------------------------------------------
-# 1. Prometheus Metrics Definition
-# ------------------------------------------------------------------
-PSI_GAUGE = Gauge(
-    "model_drift_psi",
-    "Population Stability Index (PSI) score between baseline and recent batch",
-    ["feature_name"]
-)
+TARGET_COLUMNS = ["text_length", "confidence_score"]
+PSI_THRESHOLD = 0.2  # rule of thumb: <0.1 stable, 0.1-0.2 moderate, >0.2 significant
+DRIFT_SHARE = 0.5  # dataset drift = at least this share of columns above threshold
+MIN_ROWS = 30  # PSI on fewer rows is mostly noise
 
-DATASET_DRIFT_GAUGE = Gauge(
-    "model_dataset_drift_detected",
-    "1 if overall dataset drift is detected based on threshold, else 0"
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # repo root (src/arabic_sentiment/ -> ..)
+REPORTS_DIR = PROJECT_ROOT / "reports"
+LATEST_JSON = REPORTS_DIR / "drift_latest.json"
+BASELINE_CSV = PROJECT_ROOT / "data" / "reference_baseline.csv"
 
 
 # ------------------------------------------------------------------
-# 2. Reference & Simulated Batch Data Generators
+# 1. Prometheus exporter (custom collector, reads the latest JSON on each scrape)
 # ------------------------------------------------------------------
-def load_reference_data() -> pd.DataFrame:
-    """Loads/simulates training baseline data with text_length and confidence_score."""
-    np.random.seed(42)
+def _read_latest():
+    if not LATEST_JSON.exists():
+        return None
+    try:
+        return json.loads(LATEST_JSON.read_text(encoding="utf-8"))
+    except Exception as e:  # never break /metrics because of a bad file
+        print(f"[WARNING] Could not read {LATEST_JSON}: {e}")
+        return None
+
+
+class DriftCollector:
+    def collect(self):
+        data = _read_latest()
+        if not data:
+            return
+
+        psi = GaugeMetricFamily(
+            "model_drift_psi",
+            "Population Stability Index (PSI) between training baseline and recent batch",
+            labels=["feature_name"],
+        )
+        for col, score in data["psi"].items():
+            psi.add_metric([col], float(score))
+        yield psi
+
+        yield GaugeMetricFamily(
+            "model_dataset_drift_detected",
+            "1 if overall dataset drift is detected based on threshold, else 0",
+            value=1.0 if data["dataset_drift"] else 0.0,
+        )
+        yield GaugeMetricFamily(
+            "model_drift_batch_simulated",
+            "1 if the batch used for the last drift run was SIMULATED, 0 if real scored data",
+            value=1.0 if data["simulated"] else 0.0,
+        )
+        yield GaugeMetricFamily(
+            "model_drift_baseline_placeholder",
+            "1 if the baseline is placeholder data (no data/reference_baseline.csv), 0 if real",
+            value=1.0 if data.get("baseline_placeholder", False) else 0.0,
+        )
+
+
+DRIFT_REGISTRY = CollectorRegistry()
+DRIFT_REGISTRY.register(DriftCollector())
+
+
+def get_prometheus_metrics():
+    """Payload + content-type for /metrics (drift metrics only)."""
+    return generate_latest(DRIFT_REGISTRY), CONTENT_TYPE_LATEST
+
+
+# ------------------------------------------------------------------
+# 2. Baseline & simulated batch
+# ------------------------------------------------------------------
+def _placeholder_reference() -> pd.DataFrame:
+    rng = np.random.default_rng(42)
     train_texts = [
         "المنتج ممتاز جدا وسريع التوصيل والخدمة رائعة",
         "التجربة كانت سيئة للغاية والمنتج غير مطابق للمواصفات اطلاقا",
         "التطبيق جيد نوعا ما ولكن يتطلب بعض التحسينات في الواجهة",
         "جودة عالية وتغليف ممتاز شكرا لكم على المعاملة الراقية",
-    ] * 50  # 200 samples
-
+    ] * 50
     df = pd.DataFrame({"text": train_texts})
-    df["text_length"] = df["text"].apply(len)
-    df["confidence_score"] = np.random.uniform(0.85, 0.99, size=len(df))
+    df["text_length"] = df["text"].str.len()
+    df["confidence_score"] = rng.uniform(0.85, 0.99, size=len(df))
     return df
+
+
+def load_reference_data() -> tuple:
+    """Returns (baseline_df, is_placeholder).
+
+    Real baseline = training texts scored by the SAME model:
+        python -m src.arabic_sentiment.batch_score data/processed/train.csv \\
+            --baseline --text-col review_description --sample 2000
+    """
+    if BASELINE_CSV.exists():
+        df = pd.read_csv(BASELINE_CSV)
+        if "text_length" not in df.columns:
+            df["text_length"] = df["text"].astype(str).str.len()
+        if "confidence_score" not in df.columns:
+            raise ValueError(f"{BASELINE_CSV} needs a 'confidence_score' column.")
+        return df, False
+
+    print(
+        f"[WARNING] {BASELINE_CSV} not found -> using PLACEHOLDER baseline. "
+        "PSI values are NOT meaningful until you build a real baseline (see --baseline)."
+    )
+    return _placeholder_reference(), True
 
 
 def generate_simulated_scored_batch() -> pd.DataFrame:
-    """
-    [EXPLICIT NOTICE: SIMULATED BATCH]
-    Simulates a recent scored batch from the deployed model when live traffic is unavailable.
-    """
-    print("\n[NOTICE] No live traffic stream found. Using EXPLICITLY SIMULATED scored batch for drift monitoring.")
-    np.random.seed(123)
-    simulated_texts = [
-        "ممتاز",
-        "سيء جدا",
-        "مش شغال",
-        "عايز استرجاع",
-    ] * 50  # 200 samples
-
-    df = pd.DataFrame({"text": simulated_texts})
-    df["text_length"] = df["text"].apply(len)
-    df["confidence_score"] = np.random.uniform(0.50, 0.78, size=len(df))
+    """SIMULATED batch, used only when no real scored batch is passed in."""
+    print("\n[NOTICE] No live traffic found. Using an EXPLICITLY SIMULATED scored batch.")
+    rng = np.random.default_rng(123)
+    texts = ["ممتاز", "سيء جدا", "مش شغال", "عايز استرجاع"] * 50
+    df = pd.DataFrame({"text": texts})
+    df["text_length"] = df["text"].str.len()
+    df["confidence_score"] = rng.uniform(0.50, 0.78, size=len(df))
     return df
 
 
 # ------------------------------------------------------------------
-# 3. Core Drift Monitoring Execution
+# 3. Helpers
+# ------------------------------------------------------------------
+def _snapshot_to_dict(snapshot) -> dict:
+    """Evidently 0.7+: Snapshot has .dict() / .json(); .as_dict() no longer exists."""
+    if hasattr(snapshot, "dict"):
+        return snapshot.dict()
+    return json.loads(snapshot.json())
+
+
+def _extract_psi(summary: dict) -> dict:
+    """Pull each column's PSI out of the ValueDrift metrics."""
+    scores = {}
+    for metric in summary.get("metrics", []):
+        metric_id = str(metric.get("metric_id", ""))
+        config = metric.get("config", {}) or {}
+        if "ValueDrift" not in metric_id and "ValueDrift" not in str(config.get("type", "")):
+            continue
+        value = metric.get("value")
+        if isinstance(value, dict):
+            value = value.get("value", value.get("drift_score"))
+        for col in TARGET_COLUMNS:
+            if config.get("column") == col or f"column={col}" in metric_id:
+                try:
+                    value = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if np.isfinite(value):
+                    scores[col] = round(value, 4)
+    return scores
+
+
+def _psi_numpy(reference: pd.Series, current: pd.Series, bins: int = 10) -> float:
+    """Fallback PSI (reference-quantile bins) if Evidently's output can't be parsed."""
+    edges = np.unique(np.quantile(reference, np.linspace(0, 1, bins + 1)))
+    edges[0], edges[-1] = -np.inf, np.inf
+    ref_pct = np.histogram(reference, edges)[0] / len(reference)
+    cur_pct = np.histogram(current, edges)[0] / len(current)
+    ref_pct, cur_pct = np.clip(ref_pct, 1e-4, None), np.clip(cur_pct, 1e-4, None)
+    return float(np.sum((cur_pct - ref_pct) * np.log(cur_pct / ref_pct)))
+
+
+# ------------------------------------------------------------------
+# 4. Core drift run
 # ------------------------------------------------------------------
 def run_drift_monitoring(current_batch_df: pd.DataFrame = None) -> dict:
-    """
-    Computes PSI for text_length and confidence_score using DataDriftPreset.
-    Automatically triggered post-batch scoring run.
-    Updates Prometheus Gauges.
-    """
-    reference_df = load_reference_data()
+    """Compute PSI for text_length and confidence_score; write HTML report + latest JSON."""
+    # Lazy import: keeps the serving process (which only needs get_prometheus_metrics) light.
+    from evidently import Report
+    from evidently.metrics import ValueDrift
 
-    if current_batch_df is None:
-        current_batch_df = generate_simulated_scored_batch()
+    reference_df, placeholder = load_reference_data()
 
-    # Isolate target numerical columns so Evidently ignores raw text strings
-    target_columns = ["text_length", "confidence_score"]
-    valid_cols = [col for col in target_columns if col in current_batch_df.columns]
-    
-    reference_df_subset = reference_df[valid_cols]
-    current_batch_df_subset = current_batch_df[valid_cols]
+    simulated = current_batch_df is None
+    current_df = generate_simulated_scored_batch() if simulated else current_batch_df.copy()
 
-    # Evidently Report configured with DataDriftPreset
-    report = Report(metrics=[DataDriftPreset()])
-    
-    # FIX: In Evidently 0.7+, run() returns a Snapshot object. 
-    # Methods to save and export moved to this returned object.
-    snapshot = report.run(reference_data=reference_df_subset, current_data=current_batch_df_subset)
+    if "text_length" not in current_df.columns and "text" in current_df.columns:
+        current_df["text_length"] = current_df["text"].astype(str).str.len()
 
-    # Save HTML report using the snapshot object
-    reports_dir = Path("reports")
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    snapshot.save_html(str(reports_dir / "drift_report.html"))
+    if "confidence_score" not in current_df.columns:
+        if "confidence" in current_df.columns:
+            current_df["confidence_score"] = current_df["confidence"]
+        else:
+            raise ValueError(
+                "Scored batch has no 'confidence_score' (or 'confidence') column. "
+                "Save the model's max softmax probability in batch_score.py."
+            )
 
-    # Extract metrics from preset dictionary and update Prometheus Registry
-    # Use .as_dict() or .dict() depending on exact sub-version
-    summary = snapshot.as_dict() if hasattr(snapshot, "as_dict") else snapshot.dict()
-    
-    psi_scores = {}
+    if len(current_df) < MIN_ROWS:
+        print(f"[WARNING] Only {len(current_df)} rows in the batch (<{MIN_ROWS}); PSI will be noisy.")
 
-    try:
-        metrics_list = summary.get("metrics", [])
-        for metric in metrics_list:
-            result = metric.get("result", {})
-            
-            if "dataset_drift" in result:
-                drift_flag = 1.0 if result.get("dataset_drift", False) else 0.0
-                DATASET_DRIFT_GAUGE.set(drift_flag)
+    ref = reference_df[TARGET_COLUMNS].astype(float)
+    cur = current_df[TARGET_COLUMNS].astype(float)
 
-            drift_by_cols = result.get("drift_by_columns", {}) or result.get("by_columns", {})
-            for col_name, col_data in drift_by_cols.items():
-                if col_name in target_columns:
-                    score = col_data.get("drift_score", 0.0)
-                    psi_scores[col_name] = score
-                    PSI_GAUGE.labels(feature_name=col_name).set(score)
-    except Exception as e:
-        print(f"[WARNING] Could not fully parse metrics summary dict: {e}")
+    report = Report(
+        [ValueDrift(column=c, method="psi", threshold=PSI_THRESHOLD) for c in TARGET_COLUMNS]
+    )
+    snapshot = report.run(current_data=cur, reference_data=ref)
 
-    print(f"[SUCCESS] Drift Monitoring Completed. Computed PSI: {psi_scores}")
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    snapshot.save_html(str(REPORTS_DIR / "drift_report.html"))
+
+    psi_scores = _extract_psi(_snapshot_to_dict(snapshot))
+    for col in TARGET_COLUMNS:
+        if col not in psi_scores:
+            print(f"[WARNING] No PSI parsed from Evidently for '{col}', using numpy fallback.")
+            psi_scores[col] = round(_psi_numpy(ref[col], cur[col]), 4)
+
+    drifted = sum(score >= PSI_THRESHOLD for score in psi_scores.values())
+    dataset_drift = drifted / len(psi_scores) >= DRIFT_SHARE
+
+    LATEST_JSON.write_text(
+        json.dumps(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "simulated": simulated,
+                "baseline_placeholder": placeholder,
+                "psi": psi_scores,
+                "dataset_drift": dataset_drift,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    label = "SIMULATED batch" if simulated else "real scored batch"
+    base = "PLACEHOLDER baseline" if placeholder else "real baseline"
+    print(
+        f"[SUCCESS] Drift monitoring done ({label}, {base}). "
+        f"PSI: {psi_scores}, dataset_drift={dataset_drift}"
+    )
     return psi_scores
 
 
-def get_prometheus_metrics():
-    """Returns latest Prometheus metrics payload and content-type."""
-    return generate_latest(), CONTENT_TYPE_LATEST
-
-
 if __name__ == "__main__":
-    # Test script standalone
     run_drift_monitoring()
