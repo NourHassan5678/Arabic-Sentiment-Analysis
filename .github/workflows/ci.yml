@@ -70,6 +70,7 @@ jobs:
             TAGS="$TAGS,${USER_CLEAN}/nlp-service:latest"
           fi
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          echo "user=$USER_CLEAN" >> "$GITHUB_OUTPUT"
 
       - name: Build and Push
         uses: docker/build-push-action@v5
@@ -77,5 +78,5 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/nlp-service:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/nlp-service:buildcache,mode=max
+          cache-from: type=registry,ref=${{ steps.meta.outputs.user }}/nlp-service:buildcache
+          cache-to: type=registry,ref=${{ steps.meta.outputs.user }}/nlp-service:buildcache,mode=max
