@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from pathlib import Path
+
 
 def prepare_data(input_path: str, output_dir: str) -> None:
     """Loads raw data, cleans it, and applies a 70/15/15 stratified split."""
