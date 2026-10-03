@@ -53,3 +53,5 @@ reports/drift_latest.json
 reports/drift_report.htmlreports/*.log
 reports/*.log
 reports/*.log
+reports/drift_report.html
+reports/drift_latest.json
