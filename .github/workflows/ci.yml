@@ -37,8 +37,10 @@ jobs:
         run: python src/arabic_sentiment/evaluate.py --check-only
 
       - name: Test with Pytest
+        env:
+          PYTHONPATH: .
         run: pytest tests/ -v
-
+        
   docker-build-push:
     name: Build & Push Docker Image
     needs: lint-and-test
