@@ -10,6 +10,7 @@ Usage:
       score training texts with the SAME model -> data/reference_baseline.csv
       (no drift run). This file becomes the PSI baseline.
 """
+from __future__ import annotations
 
 import argparse
 from pathlib import Path
@@ -28,8 +29,8 @@ def run_batch_scoring(
     output_data_path: str = "data/scored_batch_latest.csv",
     trigger_drift: bool = True,
     text_column: str = "text",
-    sample_size: int = None,
-):
+    sample_size: int | None = None,
+    ):
     print(f"[INFO] Loading batch data from {input_data_path}...")
     df = pd.read_csv(input_data_path)
 

@@ -17,21 +17,28 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: "pip"
 
+      - name: Install CPU PyTorch
+        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ".[dev]"
+          pip install ".[dev,serving]"
 
       - name: Lint with Ruff
         run: ruff check .
       
       - name: Run Quality Gate Check
+        env:
+          PYTHONPATH: .
         run: python src/arabic_sentiment/evaluate.py --check-only
 
       - name: Test with Pytest
+        env:
+          PYTHONPATH: .
         run: pytest tests/ -v
 
   docker-build-push:

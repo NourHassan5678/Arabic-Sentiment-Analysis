@@ -1,0 +1,14 @@
+.venv
+.git
+.gitignore
+data/
+models/
+reports/
+mlruns/
+mlflow.db
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
