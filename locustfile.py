@@ -19,7 +19,6 @@ class SentimentAPIUser(HttpUser):
     def predict_sentiment(self):
         text = random.choice(SAMPLE_REVIEWS)
         headers = {"Content-Type": "application/json"}
-        # Pass text inside a list to match text: list[str] schema
-        payload = {"text": [text]}
+        payload = {"text": text}
 
         self.client.post("/predict", json=payload, headers=headers)

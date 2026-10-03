@@ -50,4 +50,6 @@ mlartifacts/
 
 # Generated monitoring outputs (regenerated on every batch run)
 reports/drift_latest.json
-reports/drift_report.html
+reports/drift_report.htmlreports/*.log
+reports/*.log
+reports/*.log
