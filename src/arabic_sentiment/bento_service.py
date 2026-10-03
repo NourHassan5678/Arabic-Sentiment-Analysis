@@ -46,7 +46,7 @@ class AraBERTService:
         try:
             drift, _ = get_prometheus_metrics()
             return text.rstrip("\n") + "\n" + drift.decode("utf-8")
-        except Exception as e:  # never break the whole /metrics scrape
+        except Exception as e:  # noqa: BLE001
             print(f"[WARNING] Could not append drift metrics: {e}")
             return text
 

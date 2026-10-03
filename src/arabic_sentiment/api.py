@@ -1,9 +1,10 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+
+from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, Field
 
-from arabic_sentiment.baseline_model import TransformerSentimentModel
+from src.arabic_sentiment.baseline_model import TransformerSentimentModel
 
 # Instantiate model wrapper globally
 model = TransformerSentimentModel()
@@ -15,8 +16,8 @@ async def lifespan(app: FastAPI):
     model_path = os.getenv("MODEL_PATH", None)
     try:
         model.load(local_path=model_path)
-    except Exception as e:
-        print(f"Warning: Could not load production model on startup: {e}")
+    except Exception as e: # noqa: BLE001
+        print(f"[WARNING] Could not load production model on startup: {e}")
         print("Ensure 'python src/arabic_sentiment/train_transformer.py' has run or MLflow is accessible.")
     yield
 
@@ -36,8 +37,11 @@ class PredictionResponse(BaseModel):
 
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+def health_check(response: Response):
+    if not model.model or not model.tokenizer:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "unhealthy", "reason": "Model not loaded"}
+    return {"status": "healthy", "version": model.version}
 
 
 @app.post("/predict", response_model=PredictionResponse)
@@ -47,10 +51,10 @@ def predict_sentiment(request: PredictionRequest):
 
     try:
         return model.predict(request.text)
-    except Exception as e:
+    except Exception as e: # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("arabic_sentiment.api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.arabic_sentiment.api:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,4 +1,5 @@
 import random
+
 from locust import HttpUser, between, task
 
 SAMPLE_REVIEWS = [

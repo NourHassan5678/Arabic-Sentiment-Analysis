@@ -5,5 +5,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_PATH=models/production_model
+      - MODEL_PATH=/app/models/production_model
+    volumes:
+      - ./models/production_model:/app/models/production_model:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

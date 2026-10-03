@@ -41,7 +41,7 @@ def _read_latest():
         return None
     try:
         return json.loads(LATEST_JSON.read_text(encoding="utf-8"))
-    except Exception as e:  # never break /metrics because of a bad file
+    except (OSError, json.JSONDecodeError) as e:
         print(f"[WARNING] Could not read {LATEST_JSON}: {e}")
         return None
 
