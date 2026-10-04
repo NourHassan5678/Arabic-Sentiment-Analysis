@@ -1,0 +1,16 @@
+groups:
+  - name: arabic-sentiment-drift
+    rules:
+      - alert: HighFeatureDrift
+        # PSI > 0.25 is the conventional "significant shift" threshold.
+        expr: model_drift_psi > 0.25
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Drift on {{ $labels.feature_name }}: PSI {{ $value | printf \"%.3f\" }} > 0.25"
+          description: >-
+            PSI between the training distribution and the latest scored batch
+            exceeds 0.25 for feature {{ $labels.feature_name }}. Investigate the input
+            data and consider retraining. No notification channel is wired up;
+            the alert is visible at http://localhost:9090/alerts.
