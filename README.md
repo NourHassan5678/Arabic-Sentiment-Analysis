@@ -27,6 +27,7 @@ moment and retry (`docker compose ps` shows `(healthy)` when the API is ready).
 > submitted **alongside** the repository, not inside it. `dvc pull` only works after you place that
 > folder correctly:
 > 1. Unzip `dvc-storage.zip` so the `dvc-storage` folder sits **next to** the repository folder
+Download: https://drive.google.com/file/d/1xIglOOLjbUBK30LsE3a1dnejqut4mn2m/view?usp=sharing
 >    (both in the same parent directory).
 > 2. Run `dvc pull` from the repository root.
 >
