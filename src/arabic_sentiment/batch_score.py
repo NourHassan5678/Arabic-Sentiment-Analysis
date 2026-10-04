@@ -3,7 +3,7 @@ Batch scoring pipeline with automatic Evidently drift monitoring trigger.
 
 Usage:
   python -m src.arabic_sentiment.batch_score [input.csv] [--text-col COL] [--sample N]
-      score a batch -> data/scored_batch_latest.csv -> run drift monitoring
+      score a batch -> data/scoring/output/scored_batch_latest.csv -> run drift monitoring
 
   python -m src.arabic_sentiment.batch_score data/processed/train.csv \
       --baseline --text-col review_description --sample 2000
@@ -26,7 +26,7 @@ from src.arabic_sentiment.monitor_drift import run_drift_monitoring
 
 def run_batch_scoring(
     input_data_path: str,
-    output_data_path: str = "data/scored_batch_latest.csv",
+    output_data_path: str = "data/scoring/output/scored_batch_latest.csv",
     trigger_drift: bool = True,
     text_column: str = "text",
     sample_size: int | None = None,

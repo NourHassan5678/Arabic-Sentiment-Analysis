@@ -110,6 +110,17 @@ committed `results/metrics.json` and exits 1 if AraBERT's macro-F1 is below the 
 runner needs no model or data. `dvc repro` recomputes `results/metrics.json` locally, and the file
 must be committed whenever the models or data change.
 
+## Experiment tracking
+
+17 runs were logged in MLflow, comparing two Arabic BERT models
+(`aubmindlab/bert-base-arabertv2` and `CAMeL-Lab/bert-base-arabic-camelbert-mix`)
+at learning rates from 2e-5 to 5e-5. The plot shows `model_name`, `learning_rate`,
+`batch_size`, `test_macro_f1` and `test_accuracy` per run. Metric names in the runs are
+`learning_rate`, `test_accuracy` and `test_macro_f1`; some runs log the batch size as
+`effective_batch_size` (per-device 8 × gradient accumulation 4).
+
+![MLflow run comparison](reports/mlflow_comparison.png)
+
 ## Serving benchmark (final, no optimization baseline)
 
 This is the **final serving benchmark** of the Production AraBERT model behind BentoML.
