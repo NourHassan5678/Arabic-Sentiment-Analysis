@@ -11,18 +11,32 @@ CI/CD, serving, load testing and drift monitoring.
 ## Quickstart (3 commands)
 
 ```bash
-docker compose build
-docker compose up -d
+dvc pull
+docker compose up -d --build
 curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d '{"text": "\u0627\u0644\u0645\u0646\u062a\u062c \u0645\u0645\u062a\u0627\u0632"}'
 ```
 
-The text is "المنتج ممتاز" ("the product is excellent"), written as JSON escapes so the command works
-in any terminal. Expected reply: `{"label": "positive", "confidence": ..., "model_version": ...}`.
-Health check: `curl http://localhost:8000/health`.
+Requires Docker and DVC (`pip install dvc`). Expected reply:
+`{"label": "positive", "confidence": ..., "model_version": ...}`. The text is "المنتج ممتاز"
+("the product is excellent"), written as JSON escapes so the command works in any terminal.
+The model can take a minute to load: if the `curl` fails with a connection error or a 503, wait a
+moment and retry (`docker compose ps` shows `(healthy)` when the API is ready).
 
-**One-time setup:** the data and model weights are tracked with DVC, not git. The DVC remote is a local
-folder (`../dvc-storage`), so on a new machine copy that folder next to the repository and run
-`dvc pull` once before the commands above. Without the weights the API starts but `/health` returns 503.
+> **Reviewer, please read first (DVC data).** The dataset and the model weights are not stored in
+> git. They are tracked with DVC, and the DVC remote is a local folder named `dvc-storage` that is
+> submitted **alongside** the repository, not inside it. `dvc pull` only works after you place that
+> folder correctly:
+> 1. Unzip `dvc-storage.zip` so the `dvc-storage` folder sits **next to** the repository folder
+>    (both in the same parent directory).
+> 2. Run `dvc pull` from the repository root.
+>
+> If you keep the folder somewhere else, point DVC at it first:
+> `dvc remote modify --local localstorage url /path/to/dvc-storage`.
+> Without this folder `dvc pull` fails. The Docker container then still starts, but it reports
+> unhealthy and `/health` returns 503, because the model weights are missing.
+
+Check health with `curl http://localhost:8000/health`. Stop with `docker compose down`.
+An empty `text` returns a 422.
 
 ## Dataset
 
@@ -188,7 +202,7 @@ next step.
 
 ```bash
 pip install -e ".[dev,serving]"
-dvc pull                      # data and model weights
+dvc pull   #data and model weights (needs the shared dvc-storage folder, see Quickstart).
 dvc repro                     # re-runs only the stages whose inputs changed
 ruff check . && pytest -q
 ```
