@@ -9,7 +9,7 @@ description = "Arabic e-commerce sentiment classification using fine-tuned BERT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "pandas>=2.0.0",
+    "pandas>=2.0.0,<3.1",
     "scikit-learn>=1.2.0",
     "joblib>=1.2.0",
     "fastapi>=0.100.0",
@@ -27,7 +27,7 @@ dev = [
     "ruff>=0.1.0",
     "pytest>=7.0.0",
     "httpx>=0.24.0",
-    "evidently>=0.4.0",
+    "evidently>=0.7.0,<0.8",
     "prometheus-client>=0.17.0"
 ]
 serving = [
