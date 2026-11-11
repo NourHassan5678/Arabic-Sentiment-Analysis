@@ -127,12 +127,14 @@ must be committed whenever the models or data change.
 
 ## Experiment tracking
 
-17 runs were logged in MLflow, comparing two Arabic BERT models
-(`aubmindlab/bert-base-arabertv2` and `CAMeL-Lab/bert-base-arabic-camelbert-mix`)
-at learning rates from 2e-5 to 5e-5. The plot shows `model_name`, `learning_rate`,
-`batch_size`, `test_macro_f1` and `test_accuracy` per run. Metric names in the runs are
-`learning_rate`, `test_accuracy` and `test_macro_f1`; some runs log the batch size as
-`effective_batch_size` (per-device 8 × gradient accumulation 4).
+MLflow logged **17 runs** in the experiment `arabic-sentiment-transformers`:
+
+- **2 failed early attempts** (22 Sep): the first used batch size 16, the second an effective batch size of 32. 
+- **15 finished runs: the same 5-configuration grid, executed 3 times** (22 Sep and twice on 29 Sep). The grid is `aubmindlab/bert-base-arabertv2` at learning rates 2e-5, 3e-5 and 5e-5, and `CAMeL-Lab/bert-base-arabic-camelbert-mix` at 2e-5 and 3e-5, all with an effective batch size of 32 (per-device 8 × gradient accumulation 4).
+
+Every configuration gave the same test macro-F1 in all three executions (to six decimals), so training is reproducible on this setup. The best configuration, arabertv2 at 2e-5, has test macro-F1 0.6641, the same value the quality gate reports for the Production model.
+
+The full run table is in [`reports/mlflow_runs.csv`](reports/mlflow_runs.csv). The plot shows `model_name`, `learning_rate`, `batch_size`, `test_macro_f1` and `test_accuracy`. Metric names in the runs are `learning_rate`, `test_accuracy` and `test_macro_f1`. Only the first attempt logged `batch_size` (16); every later run logs `effective_batch_size` (32).
 
 ![MLflow run comparison](reports/mlflow_comparison.png)
 
@@ -148,8 +150,7 @@ There is no "before" number to compare against (see the scope note at the top).
   `/predict` takes `{"text": "..."}` and returns `{"label", "confidence", "model_version"}`,
   the same schema as the FastAPI version. Concurrent requests are merged by a
   `batchable=True` worker (max batch 32, max latency 1000 ms).
-- **Hardware:** CUDA GPU available, CPU Intel64 Family 6 Model 154 (GenuineIntel). The service
-  and Locust ran on the same machine.
+- **Hardware:** CUDA GPU available, NVIDIA GeForce RTX 3050 Laptop GPU (4 GB) and an Intel64 Family 6 Model 154 CPU. The BentoML worker ran on the GPU: it selects CUDA when `torch.cuda.is_available()` is true, which it is on this machine, and `nvidia-smi` showed a Python process with a CUDA context and about 667 MiB of GPU memory in use. The service ran directly with `bentoml serve`.
 - **Load:** `locust -f locustfile.py --headless -u 50 -r 5 -t 60s --host http://localhost:8000 --html reports/locust_report.html`
 - **Result:** 4,731 requests, **0 failures**. Median 220 ms, **p95 650 ms**, p99 about 2 s.
 - **Report:** `reports/locust_report.html`
@@ -207,6 +208,7 @@ dvc pull   #data and model weights (needs the shared dvc-storage folder, see Qui
 dvc repro                     # re-runs only the stages whose inputs changed
 ruff check . && pytest -q
 ```
+Dependencies: pandas is pinned below 3.1 and Evidently to 0.7.x (an unpinned install broke CI once, because pandas 3.1 breaks Evidently's import).
 
 In the reproducibility check, `dvc repro` reproduced the baseline exactly (test macro-F1 0.6153).
 The AraBERT stage was unchanged and skipped, so AraBERT retraining was not re-run for that check.
