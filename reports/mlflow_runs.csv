@@ -1,0 +1,18 @@
+experiment_id,tags.mlflow.runName,status,start_time,params.model_name,params.learning_rate,params.batch_size,params.effective_batch_size,metrics.test_macro_f1
+1,bert-base-arabertv2-lr2e-05-bs16,FAILED,2026-09-22 12:32,aubmindlab/bert-base-arabertv2,2e-05,16,,
+1,bert-base-arabertv2-lr2e-05-bs32,FAILED,2026-09-22 14:27,aubmindlab/bert-base-arabertv2,2e-05,,32,
+1,bert-base-arabertv2-lr2e-05-bs32,FINISHED,2026-09-22 15:39,aubmindlab/bert-base-arabertv2,2e-05,,32,0.6641141630580104
+1,bert-base-arabertv2-lr3e-05-bs32,FINISHED,2026-09-22 15:51,aubmindlab/bert-base-arabertv2,3e-05,,32,0.6534396245975542
+1,bert-base-arabertv2-lr5e-05-bs32,FINISHED,2026-09-22 16:05,aubmindlab/bert-base-arabertv2,5e-05,,32,0.6461253102655321
+1,bert-base-arabic-camelbert-mix-lr2e-05-bs32,FINISHED,2026-09-22 16:21,CAMeL-Lab/bert-base-arabic-camelbert-mix,2e-05,,32,0.6532942472428095
+1,bert-base-arabic-camelbert-mix-lr3e-05-bs32,FINISHED,2026-09-22 16:33,CAMeL-Lab/bert-base-arabic-camelbert-mix,3e-05,,32,0.6422983296442828
+1,bert-base-arabertv2-lr2e-05-bs32,FINISHED,2026-09-29 15:23,aubmindlab/bert-base-arabertv2,2e-05,,32,0.6641141630580104
+1,bert-base-arabertv2-lr3e-05-bs32,FINISHED,2026-09-29 15:34,aubmindlab/bert-base-arabertv2,3e-05,,32,0.6534396245975542
+1,bert-base-arabertv2-lr5e-05-bs32,FINISHED,2026-09-29 15:46,aubmindlab/bert-base-arabertv2,5e-05,,32,0.6461253102655321
+1,bert-base-arabic-camelbert-mix-lr2e-05-bs32,FINISHED,2026-09-29 15:57,CAMeL-Lab/bert-base-arabic-camelbert-mix,2e-05,,32,0.6532942472428095
+1,bert-base-arabic-camelbert-mix-lr3e-05-bs32,FINISHED,2026-09-29 16:10,CAMeL-Lab/bert-base-arabic-camelbert-mix,3e-05,,32,0.6422983296442828
+1,bert-base-arabertv2-lr2e-05-bs32,FINISHED,2026-09-29 18:03,aubmindlab/bert-base-arabertv2,2e-05,,32,0.6641141630580104
+1,bert-base-arabertv2-lr3e-05-bs32,FINISHED,2026-09-29 18:18,aubmindlab/bert-base-arabertv2,3e-05,,32,0.6534396245975542
+1,bert-base-arabertv2-lr5e-05-bs32,FINISHED,2026-09-29 18:30,aubmindlab/bert-base-arabertv2,5e-05,,32,0.6461253102655321
+1,bert-base-arabic-camelbert-mix-lr2e-05-bs32,FINISHED,2026-09-29 18:43,CAMeL-Lab/bert-base-arabic-camelbert-mix,2e-05,,32,0.6532942472428095
+1,bert-base-arabic-camelbert-mix-lr3e-05-bs32,FINISHED,2026-09-29 18:56,CAMeL-Lab/bert-base-arabic-camelbert-mix,3e-05,,32,0.6422983296442828
