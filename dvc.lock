@@ -9,8 +9,8 @@ stages:
       size: 4443191
     - path: src/arabic_sentiment/data_prep.py
       hash: md5
-      md5: 8085256b0a76393140aabd4c1964ca5e
-      size: 1690
+      md5: 867f449e053b35af997c9c054c51a168
+      size: 1637
     outs:
     - path: data/processed/test.csv
       hash: md5
@@ -37,8 +37,8 @@ stages:
       size: 664545
     - path: src/arabic_sentiment/baseline_model.py
       hash: md5
-      md5: 689a9f2065fba3cba3be3e2fc7e69c8b
-      size: 7066
+      md5: 16ccda24f589348662c110ff35e9d241
+      size: 6902
     outs:
     - path: models/baseline_model.joblib
       hash: md5
@@ -57,8 +57,8 @@ stages:
       size: 664545
     - path: src/arabic_sentiment/train_transformer.py
       hash: md5
-      md5: ba1a8a44ccba62bef55015cc7beb9983
-      size: 13674
+      md5: e4dd2d44bfb1fb9d9e38e9f1e021bfb9
+      size: 13295
     outs:
     - path: models/production_model/
       hash: md5
@@ -83,10 +83,10 @@ stages:
       nfiles: 4
     - path: src/arabic_sentiment/evaluate.py
       hash: md5
-      md5: 5e60a9544f80a4dc99012f3d801ca415
-      size: 7283
+      md5: 7457445f4032378a33090d95882bd2d9
+      size: 7095
     outs:
     - path: results/metrics.json
       hash: md5
-      md5: ba34ff6e5e48105e1e7113fec4c3f2a9
-      size: 514
+      md5: c53a3474d78cfc007c95674a1a0f6fb7
+      size: 494
